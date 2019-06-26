@@ -18,7 +18,7 @@ impl <T> MaybeSingle<T> {
         }
     }
 
-    pub fn get(&self, callback: fn(data: &T)) {
+    pub fn get<F: FnOnce(&T)>(&self, callback: F) {
         {
             let lock= self.callers.lock().unwrap();
             let callers = lock.load(SeqCst) + 1;
