@@ -105,3 +105,54 @@ impl <T> Deref for Data<T> {
         self.data_arc.as_ref()
     }
 }
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use std::thread::sleep;
+    use std::time::Duration;
+    use rand::{thread_rng, Rng};
+
+    #[test]
+    fn should_execute_in_parallel() {
+        let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
+        let maybe = Arc::new(maybe);
+        let mut handles = vec![];
+
+        for i in 0..100 {
+            let maybe = maybe.clone();
+            handles.push(std::thread::spawn(move ||
+            maybe.get(|_| {
+                println!(" exec {} start", i);
+                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                println!(" exec {} end", i);
+            })));
+        }
+
+        for handle in handles {
+            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+        }
+    }
+
+    #[test]
+    fn should_execute_serially() {
+        let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
+        let maybe = Arc::new(maybe);
+        let mut handles = vec![];
+
+        for i in 0..100 {
+            let maybe = maybe.clone();
+            handles.push(std::thread::spawn(move ||
+                maybe.get(|_| {
+                    println!(" exec {} start", i);
+                    sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                    println!(" exec {} end", i);
+                })));
+        }
+
+        for handle in handles {
+            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+        }
+    }
+}
