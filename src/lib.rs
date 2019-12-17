@@ -1,7 +1,8 @@
 use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct MaybeSingle<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
@@ -26,23 +27,23 @@ impl<T> MaybeSingle<T> {
         //println!("---- Start {}", rnd);
 
         {
-            let lock = self.callers.lock().unwrap();
+            let lock = self.callers.lock();
             let callers = lock.load(SeqCst) + 1;
             lock.store(callers, SeqCst);
         }
         let data_arc = {
-            let mut lock = self.data.read().unwrap();
+            let mut lock = self.data.read();
 
             lock = if lock.is_none() {
                 drop(lock);
                 {
-                    let mut write_lock = self.data.write().unwrap();
+                    let mut write_lock = self.data.write();
                     if write_lock.is_none() {
                         //  println!("--- INIT ---");
                         *write_lock = Some(Arc::new((self.init)()));
                     }
                 }
-                self.data.read().unwrap()
+                self.data.read()
             } else {
                 lock
             };
@@ -55,15 +56,9 @@ impl<T> MaybeSingle<T> {
         };
 
         let (read_lock, write_lock) = if no_parallel {
-            (
-                Arc::new(None),
-                Arc::new(Some(self.lock_mutex.write().unwrap())),
-            )
+            (None, Some(self.lock_mutex.write()))
         } else {
-            (
-                Arc::new(Some(self.lock_mutex.read().unwrap())),
-                Arc::new(None),
-            )
+            (Some(self.lock_mutex.read()), None)
         };
 
         let data_wrap = Data {
@@ -93,20 +88,20 @@ impl<T> MaybeSingle<T> {
 pub struct Data<'a, T> {
     data_arc: Arc<T>,
     data: Arc<RwLock<Option<Arc<T>>>>,
-    read_lock: Arc<Option<RwLockReadGuard<'a, ()>>>,
-    write_lock: Arc<Option<RwLockWriteGuard<'a, ()>>>,
+    read_lock: Option<RwLockReadGuard<'a, ()>>,
+    write_lock: Option<RwLockWriteGuard<'a, ()>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
 impl<'a, T> Drop for Data<'a, T> {
     fn drop(&mut self) {
         //println!("--- Dropping DATA ---");
-        let lock = self.callers.lock().unwrap();
+        let lock = self.callers.lock();
         let callers = lock.load(SeqCst) - 1;
         lock.store(callers, SeqCst);
 
         if callers == 0 {
-            let mut data = self.data.write().unwrap();
+            let mut data = self.data.write();
             *data = None;
         }
     }
