@@ -21,11 +21,7 @@ impl<T> MaybeSingle<T> {
         }
     }
 
-    pub fn get<F: FnOnce(&T)>(&self, no_parallel: bool, callback: F) {
-        //let rnd: u16 = rand::thread_rng().gen();
-
-        //println!("---- Start {}", rnd);
-
+    pub fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
         {
             let lock = self.callers.lock();
             let callers = lock.load(SeqCst) + 1;
@@ -55,33 +51,19 @@ impl<T> MaybeSingle<T> {
             }
         };
 
-        let (read_lock, write_lock) = if no_parallel {
+        let (read_lock, write_lock) = if serial {
             (None, Some(self.lock_mutex.write()))
         } else {
             (Some(self.lock_mutex.read()), None)
         };
 
-        let data_wrap = Data {
+        Data {
             data_arc,
             data: self.data.clone(),
             callers: self.callers.clone(),
             read_lock,
             write_lock,
-        };
-        callback(&data_wrap);
-        {
-            /*
-            let lock= self.callers.lock().unwrap();
-            let callers = lock.load(SeqCst) - 1;
-            lock.store(callers, SeqCst);
-
-            if callers == 0 {
-                let mut data = self.data.write().unwrap();
-                *data = None;
-            }
-            */
         }
-        //println!("---- End {}", rnd);
     }
 }
 
@@ -115,6 +97,13 @@ impl<'a, T> Deref for Data<'a, T> {
     }
 }
 
+impl<'a, T> AsRef<T> for Data<'a, T> {
+    fn as_ref(&self) -> &T {
+        self.data_arc.as_ref()
+    }
+}
+
+
 #[cfg(test)]
 mod test {
 
@@ -132,11 +121,10 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             handles.push(std::thread::spawn(move || {
-                maybe.get(false, |_| {
-                    println!(" exec {} start", i);
-                    sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
-                    println!(" exec {} end", i);
-                })
+                let _data = maybe.data(false);
+                println!(" exec {} start", i);
+                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                println!(" exec {} end", i);
             }));
         }
 
@@ -154,11 +142,10 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             handles.push(std::thread::spawn(move || {
-                maybe.get(true, |_| {
-                    println!(" exec {} start", i);
-                    sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
-                    println!(" exec {} end", i);
-                })
+                let _data = maybe.data(true);
+                println!(" exec {} start", i);
+                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                println!(" exec {} end", i);
             }));
         }
 
