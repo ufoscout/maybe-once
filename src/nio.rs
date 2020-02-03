@@ -2,19 +2,21 @@ use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc};
-use tokio::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+//use tokio::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::future::Future;
+use tokio::macros::support::Pin;
 
-pub struct MaybeSingle<T: 'static, F: Future<Output = T> + Send + 'static> {
+pub struct MaybeSingle<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
-    init: fn() -> F,
+    init: fn() -> Pin<Box<dyn Future<Output = T> + Send + Sync>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
-impl<T: 'static, F: Future<Output = T> + 'static + Send> MaybeSingle<T, F> {
+impl<T> MaybeSingle<T> {
 
-    pub fn new(init: fn() -> F) -> Self {
+    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T> + Send + Sync>>) -> Self {
         MaybeSingle {
             data: Arc::new(RwLock::new(None)),
             init,
@@ -25,23 +27,27 @@ impl<T: 'static, F: Future<Output = T> + 'static + Send> MaybeSingle<T, F> {
 
     pub async fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
         {
-            let lock = self.callers.lock().await;
+            let lock = self.callers.lock();
             let callers = lock.load(SeqCst) + 1;
             lock.store(callers, SeqCst);
         }
         let data_arc = {
-            let mut lock = self.data.read().await;
+            let mut lock = self.data.read();
 
             lock = if lock.is_none() {
                 drop(lock);
                 {
-                    let mut write_lock = self.data.write().await;
+                    let mut write_lock = self.data.write();
+                    let init = {
+                      //  (self.init)().await
+                    };
                     if write_lock.is_none() {
                         //  println!("--- INIT ---");
-                        *write_lock = Some(Arc::new((self.init)().await));
+                        //*write_lock = Some(Arc::new(init));
+                        *write_lock = None;
                     }
                 }
-                self.data.read().await
+                self.data.read()
             } else {
                 lock
             };
@@ -53,9 +59,9 @@ impl<T: 'static, F: Future<Output = T> + 'static + Send> MaybeSingle<T, F> {
         };
 
         let (read_lock, write_lock) = if serial {
-            (None, Some(self.lock_mutex.write().await))
+            (None, Some(self.lock_mutex.write()))
         } else {
-            (Some(self.lock_mutex.read().await), None)
+            (Some(self.lock_mutex.read()), None)
         };
 
         Data {
@@ -84,15 +90,14 @@ impl<'a, T> Drop for Data<'a, T> {
     }
 }
 
-#[tokio::main]
-async fn async_drop<'a, T>(target: &mut Data<'a, T>) {
-    let lock = target.callers.lock().await;
+fn async_drop<'a, T>(target: &mut Data<'a, T>) {
+    let lock = target.callers.lock();
     let callers = lock.load(SeqCst) - 1;
     lock.store(callers, SeqCst);
 
     if callers == 0 {
-        let mut data = target.data.write().await;
-        *data = None;
+        let mut data = target.data.write();
+       *data = None;
     }
 }
 
@@ -119,6 +124,27 @@ mod test {
     use std::thread::sleep;
     use std::time::Duration;
 
+    #[test]
+    fn should_execute_in_parallel() {
+        let maybe = MaybeSingle::new(|| Box::pin(async {}));
+        let maybe = Arc::new(maybe);
+        let mut handles = vec![];
+
+        for i in 0..100 {
+            let maybe = maybe.clone();
+            handles.push(tokio::spawn(async move {
+                let _data = maybe.data(false).await;
+                println!(" exec {} start", i);
+                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                println!(" exec {} end", i);
+            }));
+        }
+
+        for handle in handles {
+//            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+        }
+    }
+    /*
     #[test]
     fn should_execute_in_parallel() {
         let maybe = MaybeSingle::new(|| async {()});
@@ -184,4 +210,5 @@ mod test {
     async fn await_it<F: Future>(f: F) -> F::Output {
         f.await
     }
+    */
 }
