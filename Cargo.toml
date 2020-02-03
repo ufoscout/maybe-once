@@ -8,8 +8,9 @@ description = "A singleton. Maybe."
 
 [dependencies]
 parking_lot = "0.10"
-tokio = {version = "0.2", features = ["sync"]}
+#tokio = {version = "0.2", features = ["sync"]}
 
 [dev-dependencies]
 rand = "0.7"
+futures = "0.3"
 tokio = {version = "0.2", features = ["full"]}

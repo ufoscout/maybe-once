@@ -113,6 +113,8 @@ mod test {
     use rand::{thread_rng, Rng};
     use std::thread::sleep;
     use std::time::Duration;
+    use std::future::Future;
+    use std::pin::Pin;
 
     #[test]
     fn should_execute_in_parallel() {
@@ -154,5 +156,31 @@ mod test {
         for handle in handles {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
+    }
+
+    pub fn call_async<'a, 'b, F>(callback: fn(&'a str) -> F)
+        where F: 'b + Future<Output = Result<(), ()>> {
+        let s = String::new();
+        //callback(&s);
+    }
+
+    pub fn call_async_box(callback: fn(&'_ str) -> Pin<Box<dyn Future<Output = Result<(), ()>> + '_>>) {
+        let s = String::new();
+        callback(&s);
+    }
+
+    #[test]
+    fn should_call_async() {
+
+        call_async(|value| async move {
+            let value_ref = value;
+            Ok(())
+        });
+
+        use futures::future::FutureExt;
+        call_async_box(|value| async move {
+            let value_ref = value;
+            Ok(())
+        }.boxed());
     }
 }
