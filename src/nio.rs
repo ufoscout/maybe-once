@@ -8,16 +8,16 @@ use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::future::Future;
 use core::pin::Pin;
 
-pub struct MaybeSingleAsync<T: 'static + Send + Sync> {
+pub struct MaybeSingleAsync<T: 'static + Send> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
-    init: fn() -> Pin<Box<dyn Future<Output = T> + 'static + Send + Sync>>,
+    init: fn() -> Pin<Box<dyn Future<Output = T> + Send>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
-impl<T: 'static + Send + Sync> MaybeSingleAsync<T> {
+impl<T: 'static + Send> MaybeSingleAsync<T> {
 
-    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T> + 'static + Send + Sync>>) -> Self {
+    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T> + Send>>) -> Self {
         MaybeSingleAsync {
             data: Arc::new(RwLock::new(None)),
             init,
