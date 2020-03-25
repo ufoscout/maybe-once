@@ -127,6 +127,7 @@ mod test {
     use rand::{thread_rng, Rng};
     use std::thread::sleep;
     use std::time::Duration;
+    use tokio::time::Instant;
 
     #[test]
     fn maybe_should_be_send() {
@@ -134,8 +135,8 @@ mod test {
         need_send(maybe);
     }
 
-    fn need_send<T: Send>(t: T) {}
-    fn need_sync<T: Sync>(t: T) {}
+    fn need_send<T: Send>(_t: T) {}
+    fn need_sync<T: Sync>(_t: T) {}
 
     #[test]
     fn maybe_should_be_sync() {
@@ -143,11 +144,10 @@ mod test {
         need_sync(maybe);
     }
 
-
+/*
     #[tokio::test]
     async fn should_execute_in_parallel() {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {
-            "".to_owned()
         }));
         let maybe = Arc::new(maybe);
         let _data = maybe.data(false).await;
@@ -156,91 +156,53 @@ mod test {
         tokio::spawn(async move {
         //    let _data = maybe_clone.data(false).await;
         });
-        /*
-        //let mut handles = vec![];
-
-        for i in 0..100 {
-            let maybe = maybe.clone();
-
-            tokio::spawn(async move {
-                let _data = maybe.data(false).await;
-                println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
-                println!(" exec {} end", i);
-            });
-
-        }
-*/
-       // for handle in handles {
-//            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
-        //}
-    }
-
-    /*
-    #[test]
-    fn should_execute_in_parallel() {
-        let maybe = MaybeSingle::new(|| async {()});
-        let maybe = Arc::new(maybe);
-        let mut tasks = vec![];
-
-        for i in 0..100 {
-            let maybe = maybe.clone();
-            tasks.push(tokio::spawn(async move {
-                let data = maybe.data(false).await;
-                println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(100, 1000)));
-                println!(" exec {} end", i);
-                ()
-            }));
-        }
-
-        println!("1");
 
         let mut handles = vec![];
-        for task in tasks {
-            handles.push(std::thread::spawn(move || {await_it(task)}));
-        }
 
-        println!("2");
+        for i in 0..100 {
+            let maybe = maybe.clone();
+            handles.push(tokio::spawn( async move {
+                let _data = maybe.data(true).await;
+                println!(" exec {} start", i);
+                tokio::time::delay_until(Instant::now() + Duration::from_nanos(thread_rng().gen_range(0, 1000))).await;
+                println!(" exec {} end", i);
+            }));
+
+        }
 
         for handle in handles {
-            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+            let _ = handle.await.unwrap(); // maybe consider handling errors propagated from the thread here
         }
-
-        println!("3");
     }
 
     #[tokio::test]
     async fn should_execute_serially() {
-        let maybe = MaybeSingle::new(|| async {});
+        let maybe = MaybeSingleAsync::new(|| Box::pin(async {
+        }));
         let maybe = Arc::new(maybe);
-        let mut tasks = vec![];
+        let _data = maybe.data(false).await;
+
+        let maybe_clone = maybe.clone();
+        tokio::spawn(async move {
+            //    let _data = maybe_clone.data(false).await;
+        });
+
+        let mut handles = vec![];
 
         for i in 0..100 {
             let maybe = maybe.clone();
-            tasks.push(tokio::spawn(async move {
+            handles.push(tokio::spawn( async move {
                 let _data = maybe.data(true).await;
                 println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                tokio::time::delay_until(Instant::now() + Duration::from_nanos(thread_rng().gen_range(0, 1000))).await;
                 println!(" exec {} end", i);
-                ()
             }));
+
         }
 
-        //let mut handles = vec![];
-        for task in tasks {
-            task.await;
-            //handles.push(std::thread::spawn(move || {await_it(task)}));
+        for handle in handles {
+            let _ = handle.await.unwrap(); // maybe consider handling errors propagated from the thread here
         }
-
-        //for handle in handles {
-        //    let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
-        //}
-    }
-
-    #[tokio::main]
-    async fn await_it<F: Future>(f: F) -> F::Output {
-        f.await
     }
     */
 }
