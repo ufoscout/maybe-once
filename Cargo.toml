@@ -1,6 +1,6 @@
 [package]
 name = "maybe-single"
-version = "0.8.0-async-alpha.3"
+version = "0.8.0-async-alpha.4"
 license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
 edition = "2018"
