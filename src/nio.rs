@@ -9,16 +9,16 @@ use std::future::Future;
 use core::pin::Pin;
 pub use futures::FutureExt;
 
-pub struct MaybeSingleAsync<T: 'static + Send> {
+pub struct MaybeSingleAsync<T: 'static> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
-    init: fn() -> Pin<Box<dyn Future<Output = T> + Send>>,
+    init: fn() -> Pin<Box<dyn Future<Output = T>>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
 impl<T: 'static + Send> MaybeSingleAsync<T> {
 
-    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T> + Send>>) -> Self {
+    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T>>>) -> Self {
         MaybeSingleAsync {
             data: Arc::new(RwLock::new(None)),
             init,
@@ -90,7 +90,6 @@ pub struct Data<'a, T: Send + 'static> {
 
 impl<'a, T: Send> Drop for Data<'a, T> {
     fn drop(&mut self) {
-        //println!("--- Dropping DATA ---");
         async_drop(self)
     }
 }
@@ -101,6 +100,7 @@ fn async_drop<'a, T: Send>(target: &mut Data<'a, T>) {
     lock.store(callers, SeqCst);
 
     if callers == 0 {
+        println!("MaybeSingle --- Dropping DATA ---");
         let mut data = target.data.write();
        *data = None;
     }
@@ -145,7 +145,7 @@ mod test {
         need_sync(maybe);
     }
 
-/*
+    /*
     #[tokio::test]
     async fn should_execute_in_parallel() {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {
@@ -206,4 +206,5 @@ mod test {
         }
     }
     */
+
 }
