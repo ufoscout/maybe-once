@@ -4,17 +4,20 @@ use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub mod nio;
+#[cfg(not(feature = "async"))]
+pub type InitCall<T> = fn() -> T;
+#[cfg(all(feature = "async"))]
+pub type InitCall<T> = fn() -> core::pin::Pin<Box<dyn std::future::Future<Output = T>>>;
 
-pub struct MaybeSingle<T> {
+pub struct MaybeSingle<T: 'static> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
-    init: fn() -> T,
+    init: InitCall<T>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
 impl<T> MaybeSingle<T> {
-    pub fn new(init: fn() -> T) -> Self {
+    pub fn new(init: InitCall<T>) -> Self {
         MaybeSingle {
             data: Arc::new(RwLock::new(None)),
             init,
@@ -23,6 +26,7 @@ impl<T> MaybeSingle<T> {
         }
     }
 
+    #[cfg(not(feature = "async"))]
     pub fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
         {
             let lock = self.callers.lock();
@@ -66,6 +70,59 @@ impl<T> MaybeSingle<T> {
             read_lock,
             write_lock,
         }
+    }
+
+    #[cfg(feature = "async")]
+    pub async fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
+        {
+            let lock = self.callers.lock();
+            let callers = lock.load(SeqCst) + 1;
+            lock.store(callers, SeqCst);
+        }
+
+        let data_arc = {
+            let mut lock = self.data.read();
+
+            lock = if lock.is_none() {
+                drop(lock);
+                {
+                    let mut write_lock = self.data.write();
+
+                    if write_lock.is_none() {
+                        //  println!("--- INIT ---");
+                        let init = {
+                            (self.init)().await
+                        };
+
+                        *write_lock = Some(Arc::new(init));
+                    }
+
+                }
+                self.data.read()
+            } else {
+                lock
+            };
+            //println!("---- Exec {}", rnd);
+            match lock.as_ref() {
+                Some(data) => data.clone(),
+                None => panic!("There should always be data here!"),
+            }
+        };
+
+        let (read_lock, write_lock) = if serial {
+            (None, Some(self.lock_mutex.write()))
+        } else {
+            (Some(self.lock_mutex.read()), None)
+        };
+
+        Data {
+            data_arc,
+            data: self.data.clone(),
+            callers: self.callers.clone(),
+            read_lock,
+            write_lock,
+        }
+
     }
 }
 
@@ -117,6 +174,7 @@ mod test {
     use std::future::Future;
     use std::pin::Pin;
 
+    #[cfg(not(feature = "async"))]
     #[test]
     fn should_execute_in_parallel() {
         let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
@@ -138,6 +196,7 @@ mod test {
         }
     }
 
+    #[cfg(not(feature = "async"))]
     #[test]
     fn should_execute_serially() {
         let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
