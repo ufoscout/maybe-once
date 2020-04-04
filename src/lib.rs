@@ -4,9 +4,12 @@ use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+#[cfg(feature = "async")]
+pub use futures::FutureExt;
+
 #[cfg(not(feature = "async"))]
 pub type InitCall<T> = fn() -> T;
-#[cfg(all(feature = "async"))]
+#[cfg(feature = "async")]
 pub type InitCall<T> = fn() -> core::pin::Pin<Box<dyn std::future::Future<Output = T>>>;
 
 pub struct MaybeSingle<T: 'static> {
