@@ -85,6 +85,7 @@ impl<'a, T> Drop for Data<'a, T> {
         lock.store(callers, SeqCst);
 
         if callers == 0 {
+            println!("MaybeSingle --- Dropping DATA ---");
             let mut data = self.data.write();
             *data = None;
         }

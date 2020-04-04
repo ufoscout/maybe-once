@@ -8,6 +8,7 @@ use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::future::Future;
 use core::pin::Pin;
 pub use futures::FutureExt;
+pub use crate::Data;
 
 pub struct MaybeSingleAsync<T: 'static> {
     data: Arc<RwLock<Option<Arc<T>>>>,
@@ -79,47 +80,6 @@ impl<T: 'static + Send> MaybeSingleAsync<T> {
 
     }
 }
-
-pub struct Data<'a, T: Send + 'static> {
-    data_arc: Arc<T>,
-    data: Arc<RwLock<Option<Arc<T>>>>,
-    read_lock: Option<RwLockReadGuard<'a, ()>>,
-    write_lock: Option<RwLockWriteGuard<'a, ()>>,
-    callers: Arc<Mutex<AtomicUsize>>,
-}
-
-impl<'a, T: Send> Drop for Data<'a, T> {
-    fn drop(&mut self) {
-        async_drop(self)
-    }
-}
-
-fn async_drop<'a, T: Send>(target: &mut Data<'a, T>) {
-    let lock = target.callers.lock();
-    let callers = lock.load(SeqCst) - 1;
-    lock.store(callers, SeqCst);
-
-    if callers == 0 {
-        println!("MaybeSingle --- Dropping DATA ---");
-        let mut data = target.data.write();
-       *data = None;
-    }
-}
-
-impl<'a, T: Send> Deref for Data<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.data_arc.as_ref()
-    }
-}
-
-impl<'a, T: Send> AsRef<T> for Data<'a, T> {
-    fn as_ref(&self) -> &T {
-        self.data_arc.as_ref()
-    }
-}
-
 
 #[cfg(test)]
 mod test {
