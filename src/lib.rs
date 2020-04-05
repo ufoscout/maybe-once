@@ -4,7 +4,9 @@ use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub mod nio;
+mod nio;
+
+pub use nio::*;
 
 pub struct MaybeSingle<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,

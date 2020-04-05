@@ -7,8 +7,8 @@ use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 //use tokio::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::future::Future;
 use core::pin::Pin;
+
 pub use futures::FutureExt;
-pub use crate::Data;
 
 pub struct MaybeSingleAsync<T: 'static> {
     data: Arc<RwLock<Option<Arc<T>>>>,
