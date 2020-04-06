@@ -9,8 +9,6 @@ use std::future::Future;
 use core::pin::Pin;
 use crate::Data;
 
-pub use futures::FutureExt;
-
 pub struct MaybeSingleAsync<T: 'static> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
@@ -18,7 +16,7 @@ pub struct MaybeSingleAsync<T: 'static> {
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
-impl<T: 'static + Send> MaybeSingleAsync<T> {
+impl<T: 'static> MaybeSingleAsync<T> {
 
     pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T>>>) -> Self {
         MaybeSingleAsync {
