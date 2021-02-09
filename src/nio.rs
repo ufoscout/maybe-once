@@ -9,14 +9,14 @@ use std::future::Future;
 use core::pin::Pin;
 use crate::Data;
 
-pub struct MaybeSingleAsync<T: 'static> {
+pub struct MaybeSingleAsync<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
     init: fn() -> Pin<Box<dyn Future<Output = T>>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
-impl<T: 'static> MaybeSingleAsync<T> {
+impl<T> MaybeSingleAsync<T> {
 
     pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T>>>) -> Self {
         MaybeSingleAsync {
@@ -27,7 +27,7 @@ impl<T: 'static> MaybeSingleAsync<T> {
         }
     }
 
-    pub async fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
+    pub async fn data(&self, serial: bool) -> Data<'_, T> {
         {
             let lock = self.callers.lock();
             let callers = lock.load(SeqCst) + 1;
@@ -87,7 +87,7 @@ mod test {
     use rand::{thread_rng, Rng};
     use std::thread::sleep;
     use std::time::Duration;
-    use tokio::time::Instant;
+    use async_std::sync::Mutex;
 
     #[test]
     fn maybe_should_be_send() {
@@ -104,66 +104,69 @@ mod test {
         need_sync(maybe);
     }
 
-    /*
-    #[tokio::test]
-    async fn should_execute_in_parallel() {
+
+    #[async_std::test]
+    async fn async_should_execute_in_parallel() {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {
         }));
         let maybe = Arc::new(maybe);
-        let _data = maybe.data(false).await;
 
-        let maybe_clone = maybe.clone();
-        tokio::spawn(async move {
-        //    let _data = maybe_clone.data(false).await;
-        });
+        let responses = Arc::new(Mutex::new(vec![]));
 
         let mut handles = vec![];
 
         for i in 0..100 {
             let maybe = maybe.clone();
-            handles.push(tokio::spawn( async move {
-                let _data = maybe.data(true).await;
+            let responses = responses.clone();
+            handles.push(async_std::task::spawn_local( async move {
+                let _data = maybe.data(false).await;
                 println!(" exec {} start", i);
-                tokio::time::delay_until(Instant::now() + Duration::from_nanos(thread_rng().gen_range(0, 1000))).await;
+                async_std::task::sleep(Duration::from_nanos(thread_rng().gen_range(0..1000))).await;
                 println!(" exec {} end", i);
+                let mut responses_lock = responses.lock().await;
+                responses_lock.push(i);
             }));
 
         }
 
         for handle in handles {
-            let _ = handle.await.unwrap(); // maybe consider handling errors propagated from the thread here
+            let _s = handle.await; // maybe consider handling errors propagated from the thread here
         }
+
+        let responses_lock = responses.lock().await;
+        assert_eq!(100, responses_lock.len());
     }
 
-    #[tokio::test]
-    async fn should_execute_serially() {
+    #[async_std::test]
+    async fn async_should_execute_serially() {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {
         }));
         let maybe = Arc::new(maybe);
-        let _data = maybe.data(false).await;
 
-        let maybe_clone = maybe.clone();
-        tokio::spawn(async move {
-            //    let _data = maybe_clone.data(false).await;
-        });
+        let responses = Arc::new(Mutex::new(vec![]));
 
         let mut handles = vec![];
 
         for i in 0..100 {
             let maybe = maybe.clone();
-            handles.push(tokio::spawn( async move {
+            let responses = responses.clone();
+            handles.push(async_std::task::spawn_local( async move {
                 let _data = maybe.data(true).await;
                 println!(" exec {} start", i);
-                tokio::time::delay_until(Instant::now() + Duration::from_nanos(thread_rng().gen_range(0, 1000))).await;
+                async_std::task::sleep(Duration::from_nanos(thread_rng().gen_range(0..10))).await;
                 println!(" exec {} end", i);
+                let mut responses_lock = responses.lock().await;
+                responses_lock.push(i);
             }));
 
         }
 
         for handle in handles {
-            let _ = handle.await.unwrap(); // maybe consider handling errors propagated from the thread here
+            let _ = handle.await; // maybe consider handling errors propagated from the thread here
         }
+
+        let responses_lock = responses.lock().await;
+        assert_eq!(100, responses_lock.len());
     }
-    */
 
 }
