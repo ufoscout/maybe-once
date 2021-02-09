@@ -1,24 +1,20 @@
-use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{Arc};
+use std::sync::Arc;
 
-use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
-//use tokio::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
-use std::future::Future;
 use core::pin::Pin;
-use crate::Data;
+use std::future::Future;
+use tokio::sync::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct MaybeSingleAsync<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
-    init: fn() -> Pin<Box<dyn Future<Output = T>>>,
+    init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
 impl<T> MaybeSingleAsync<T> {
-
-    pub fn new(init: fn() -> Pin<Box<dyn Future<Output = T>>>) -> Self {
+    pub fn new(init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>) -> Self {
         MaybeSingleAsync {
             data: Arc::new(RwLock::new(None)),
             init,
@@ -29,30 +25,27 @@ impl<T> MaybeSingleAsync<T> {
 
     pub async fn data(&self, serial: bool) -> Data<'_, T> {
         {
-            let lock = self.callers.lock();
+            let lock = self.callers.lock().await;
             let callers = lock.load(SeqCst) + 1;
             lock.store(callers, SeqCst);
         }
 
         let data_arc = {
-            let mut lock = self.data.read();
+            let mut lock = self.data.read().await;
 
             lock = if lock.is_none() {
                 drop(lock);
                 {
-                    let mut write_lock = self.data.write();
+                    let mut write_lock = self.data.write().await;
 
                     if write_lock.is_none() {
                         //  println!("--- INIT ---");
-                        let init = {
-                            (self.init)().await
-                        };
+                        let init = { (self.init)().await };
 
                         *write_lock = Some(Arc::new(init));
                     }
-
                 }
-                self.data.read()
+                self.data.read().await
             } else {
                 lock
             };
@@ -64,9 +57,9 @@ impl<T> MaybeSingleAsync<T> {
         };
 
         let (read_lock, write_lock) = if serial {
-            (None, Some(self.lock_mutex.write()))
+            (None, Some(self.lock_mutex.write().await))
         } else {
-            (Some(self.lock_mutex.read()), None)
+            (Some(self.lock_mutex.read().await), None)
         };
 
         Data {
@@ -76,8 +69,15 @@ impl<T> MaybeSingleAsync<T> {
             read_lock,
             write_lock,
         }
-
     }
+}
+
+pub struct Data<'a, T> {
+    data_arc: Arc<T>,
+    data: Arc<RwLock<Option<Arc<T>>>>,
+    read_lock: Option<RwLockReadGuard<'a, ()>>,
+    write_lock: Option<RwLockWriteGuard<'a, ()>>,
+    callers: Arc<Mutex<AtomicUsize>>,
 }
 
 #[cfg(test)]
@@ -85,9 +85,7 @@ mod test {
 
     use super::*;
     use rand::{thread_rng, Rng};
-    use std::thread::sleep;
     use std::time::Duration;
-    use async_std::sync::Mutex;
 
     #[test]
     fn maybe_should_be_send() {
@@ -104,11 +102,9 @@ mod test {
         need_sync(maybe);
     }
 
-
-    #[async_std::test]
+    #[tokio::test]
     async fn async_should_execute_in_parallel() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {
-        }));
+        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
         let responses = Arc::new(Mutex::new(vec![]));
@@ -118,15 +114,15 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             let responses = responses.clone();
-            handles.push(async_std::task::spawn_local( async move {
+            let sleep_for = thread_rng().gen_range(0..1000);
+            handles.push(tokio::spawn(async move {
                 let _data = maybe.data(false).await;
                 println!(" exec {} start", i);
-                async_std::task::sleep(Duration::from_nanos(thread_rng().gen_range(0..1000))).await;
+                tokio::time::delay_for(Duration::from_nanos(sleep_for)).await;
                 println!(" exec {} end", i);
                 let mut responses_lock = responses.lock().await;
                 responses_lock.push(i);
             }));
-
         }
 
         for handle in handles {
@@ -137,10 +133,9 @@ mod test {
         assert_eq!(100, responses_lock.len());
     }
 
-    #[async_std::test]
+    #[tokio::test]
     async fn async_should_execute_serially() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {
-        }));
+        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
         let responses = Arc::new(Mutex::new(vec![]));
@@ -150,15 +145,16 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             let responses = responses.clone();
-            handles.push(async_std::task::spawn_local( async move {
+            let sleep_for = thread_rng().gen_range(0..10);
+
+            handles.push(tokio::spawn(async move {
                 let _data = maybe.data(true).await;
                 println!(" exec {} start", i);
-                async_std::task::sleep(Duration::from_nanos(thread_rng().gen_range(0..10))).await;
+                tokio::time::delay_for(Duration::from_nanos(sleep_for)).await;
                 println!(" exec {} end", i);
                 let mut responses_lock = responses.lock().await;
                 responses_lock.push(i);
             }));
-
         }
 
         for handle in handles {
@@ -168,5 +164,4 @@ mod test {
         let responses_lock = responses.lock().await;
         assert_eq!(100, responses_lock.len());
     }
-
 }

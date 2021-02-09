@@ -1,8 +1,8 @@
+use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::ops::Deref;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::{Arc};
-use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::Arc;
 
 mod nio;
 
@@ -25,7 +25,7 @@ impl<T> MaybeSingle<T> {
         }
     }
 
-    pub fn data<'a>(&'a self, serial: bool) -> Data<'a, T> {
+    pub fn data(&self, serial: bool) -> Data<'_, T> {
         {
             let lock = self.callers.lock();
             let callers = lock.load(SeqCst) + 1;
@@ -108,7 +108,6 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
@@ -116,8 +115,6 @@ mod test {
     use rand::{thread_rng, Rng};
     use std::thread::sleep;
     use std::time::Duration;
-    use std::future::Future;
-    use std::pin::Pin;
 
     #[test]
     fn should_execute_in_parallel() {
@@ -160,5 +157,4 @@ mod test {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
     }
-
 }
