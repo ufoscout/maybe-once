@@ -130,7 +130,7 @@ mod test {
             handles.push(std::thread::spawn(move || {
                 let _data = maybe.data(false);
                 println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }
@@ -151,7 +151,7 @@ mod test {
             handles.push(std::thread::spawn(move || {
                 let _data = maybe.data(true);
                 println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0, 1000)));
+                sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }
