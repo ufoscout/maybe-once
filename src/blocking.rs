@@ -122,15 +122,19 @@ mod test {
             let maybe = maybe.clone();
             handles.push(std::thread::spawn(move || {
                 let _data = maybe.data(false);
+                assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
                 sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }
 
+
         for handle in handles {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
+
+        assert!(maybe.data.read().is_none());
     }
 
     #[test]
@@ -143,14 +147,18 @@ mod test {
             let maybe = maybe.clone();
             handles.push(std::thread::spawn(move || {
                 let _data = maybe.data(true);
+                assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
                 sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }
 
+
         for handle in handles {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
+
+        assert!(maybe.data.read().is_none());
     }
 }
