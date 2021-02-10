@@ -33,7 +33,6 @@ impl<T> MaybeSingleAsync<T> {
         }
 
         let data_arc = {
-            //let mut lock = self.data.read();
 
             let is_none = { self.data.read().is_none() };
 
@@ -153,7 +152,7 @@ mod test {
                 let _data = maybe.data(false).await;
                 assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
-                tokio::time::delay_for(Duration::from_nanos(sleep_for)).await;
+                tokio::time::sleep(Duration::from_nanos(sleep_for)).await;
                 println!(" exec {} end", i);
                 let mut responses_lock = responses.lock().await;
                 responses_lock.push(i);
@@ -188,7 +187,7 @@ mod test {
                 let _data = maybe.data(true).await;
                 assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
-                tokio::time::delay_for(Duration::from_nanos(sleep_for)).await;
+                tokio::time::sleep(Duration::from_nanos(sleep_for)).await;
                 println!(" exec {} end", i);
                 let mut responses_lock = responses.lock().await;
                 responses_lock.push(i);
