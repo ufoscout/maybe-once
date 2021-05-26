@@ -129,7 +129,6 @@ mod test {
             }));
         }
 
-
         for handle in handles {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
@@ -153,7 +152,6 @@ mod test {
                 println!(" exec {} end", i);
             }));
         }
-
 
         for handle in handles {
             let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here

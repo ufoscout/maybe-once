@@ -3,14 +3,14 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
 
+use async_lock::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 use core::pin::Pin;
 use parking_lot::{Mutex, RwLock};
 use std::future::Future;
-use tokio::sync::{RwLock as TokioRwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct MaybeSingleAsync<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
-    lock_mutex: Arc<TokioRwLock<()>>,
+    lock_mutex: Arc<AsyncRwLock<()>>,
     init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
@@ -20,7 +20,7 @@ impl<T> MaybeSingleAsync<T> {
         MaybeSingleAsync {
             data: Arc::new(RwLock::new(None)),
             init,
-            lock_mutex: Arc::new(TokioRwLock::new(())),
+            lock_mutex: Arc::new(AsyncRwLock::new(())),
             callers: Arc::new(Mutex::new(AtomicUsize::new(0))),
         }
     }
@@ -33,7 +33,6 @@ impl<T> MaybeSingleAsync<T> {
         }
 
         let data_arc = {
-
             let is_none = { self.data.read().is_none() };
 
             if is_none {
@@ -116,9 +115,9 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
 mod test {
 
     use super::*;
+    use async_lock::Mutex as AsyncMutex;
     use rand::{thread_rng, Rng};
     use std::time::Duration;
-    use tokio::sync::Mutex as TokioMutex;
 
     #[test]
     fn maybe_should_be_send() {
@@ -140,7 +139,7 @@ mod test {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
-        let responses = Arc::new(TokioMutex::new(vec![]));
+        let responses = Arc::new(AsyncMutex::new(vec![]));
 
         let mut handles = vec![];
 
@@ -174,7 +173,7 @@ mod test {
         let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
-        let responses = Arc::new(TokioMutex::new(vec![]));
+        let responses = Arc::new(AsyncMutex::new(vec![]));
 
         let mut handles = vec![];
 
