@@ -70,7 +70,9 @@ impl<T> MaybeSingle<T> {
 pub struct Data<'a, T> {
     data_arc: Arc<T>,
     data: Arc<RwLock<Option<Arc<T>>>>,
+    #[allow(dead_code)]
     read_lock: Option<RwLockReadGuard<'a, ()>>,
+    #[allow(dead_code)]
     write_lock: Option<RwLockWriteGuard<'a, ()>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }

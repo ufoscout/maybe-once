@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
 
-use async_lock::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 use core::pin::Pin;
 use parking_lot::{Mutex, RwLock};
 use std::future::Future;
