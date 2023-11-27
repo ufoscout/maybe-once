@@ -117,9 +117,9 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
 mod test {
 
     use super::*;
-    use tokio::sync::Mutex as AsyncMutex;
     use rand::{thread_rng, Rng};
     use std::time::Duration;
+    use tokio::sync::Mutex as AsyncMutex;
 
     #[test]
     fn maybe_should_be_send() {
