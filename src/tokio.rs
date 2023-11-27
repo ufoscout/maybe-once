@@ -77,7 +77,9 @@ impl<T> MaybeSingleAsync<T> {
 pub struct Data<'a, T> {
     data_arc: Arc<T>,
     data: Arc<RwLock<Option<Arc<T>>>>,
+    #[allow(dead_code)]
     read_lock: Option<RwLockReadGuard<'a, ()>>,
+    #[allow(dead_code)]
     write_lock: Option<RwLockWriteGuard<'a, ()>>,
     callers: Arc<Mutex<AtomicUsize>>,
 }
@@ -115,7 +117,7 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
 mod test {
 
     use super::*;
-    use async_lock::Mutex as AsyncMutex;
+    use tokio::sync::Mutex as AsyncMutex;
     use rand::{thread_rng, Rng};
     use std::time::Duration;
 

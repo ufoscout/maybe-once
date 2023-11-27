@@ -1,4 +1,4 @@
 pub mod blocking;
 
-#[cfg(feature = "async")]
-pub mod nio;
+#[cfg(feature = "tokio")]
+pub mod tokio;
