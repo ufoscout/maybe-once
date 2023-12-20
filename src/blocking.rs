@@ -132,7 +132,7 @@ mod test {
         }
 
         for handle in handles {
-            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+            handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
 
         assert!(maybe.data.read().is_none());
@@ -156,7 +156,7 @@ mod test {
         }
 
         for handle in handles {
-            let _ = handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
+            handle.join().unwrap(); // maybe consider handling errors propagated from the thread here
         }
 
         assert!(maybe.data.read().is_none());
