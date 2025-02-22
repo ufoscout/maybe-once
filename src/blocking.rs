@@ -110,7 +110,7 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
 mod test {
 
     use super::*;
-    use rand::{thread_rng, Rng};
+    use rand::random_range;
     use std::thread::sleep;
     use std::time::Duration;
 
@@ -126,7 +126,7 @@ mod test {
                 let _data = maybe.data(false);
                 assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
+                sleep(Duration::from_nanos(random_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }
@@ -150,7 +150,7 @@ mod test {
                 let _data = maybe.data(true);
                 assert!(maybe.data.read().is_some());
                 println!(" exec {} start", i);
-                sleep(Duration::from_nanos(thread_rng().gen_range(0..1000)));
+                sleep(Duration::from_nanos(random_range(0..1000)));
                 println!(" exec {} end", i);
             }));
         }

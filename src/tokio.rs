@@ -117,7 +117,7 @@ impl<'a, T> AsRef<T> for Data<'a, T> {
 mod test {
 
     use super::*;
-    use rand::{thread_rng, Rng};
+    use rand::random_range;
     use std::time::Duration;
     use tokio::sync::Mutex as AsyncMutex;
 
@@ -148,7 +148,7 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             let responses = responses.clone();
-            let sleep_for = thread_rng().gen_range(0..1000);
+            let sleep_for = random_range(0..1000);
             handles.push(tokio::spawn(async move {
                 let _data = maybe.data(false).await;
                 assert!(maybe.data.read().is_some());
@@ -182,7 +182,7 @@ mod test {
         for i in 0..100 {
             let maybe = maybe.clone();
             let responses = responses.clone();
-            let sleep_for = thread_rng().gen_range(0..10);
+            let sleep_for = random_range(0..10);
 
             handles.push(tokio::spawn(async move {
                 let _data = maybe.data(true).await;
