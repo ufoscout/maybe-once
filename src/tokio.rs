@@ -84,7 +84,7 @@ pub struct Data<'a, T> {
     callers: Arc<Mutex<AtomicUsize>>,
 }
 
-impl<'a, T> Drop for Data<'a, T> {
+impl<T> Drop for Data<'_, T> {
     fn drop(&mut self) {
         //println!("--- Dropping DATA ---");
         let lock = self.callers.lock();
@@ -99,7 +99,7 @@ impl<'a, T> Drop for Data<'a, T> {
     }
 }
 
-impl<'a, T> Deref for Data<'a, T> {
+impl<T> Deref for Data<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -107,7 +107,7 @@ impl<'a, T> Deref for Data<'a, T> {
     }
 }
 
-impl<'a, T> AsRef<T> for Data<'a, T> {
+impl<T> AsRef<T> for Data<'_, T> {
     fn as_ref(&self) -> &T {
         self.data_arc.as_ref()
     }
