@@ -4,25 +4,25 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 /// A `MaybeOnce` object is a variation of the `OnceLock` object that keeps track of the number of references to the internal data
-/// and drops it every time the references counter goes to 0. When the data is accessed, 
+/// and drops it every time the references counter goes to 0. When the data is accessed,
 /// it will be created if it does not exist, or it will recreated if it was previously dropped.
-/// 
-/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
+///
+/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when
 /// the process terminates. This mechanism is used as a workaround for the fact that rust does not drop static items at the end of the program.
 ///
-/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
+/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when
 /// the process terminates.
 /// A typical example is to initialize an expensive object, for example to start a docker container, to be used by a set of integration tests,
 /// with the guarantee that it is properly dropped when the tests terminates.
-/// 
-/// Example: 
+///
+/// Example:
 /// ```rust
 /// mod test {
-/// 
+///
 ///     use std::sync::OnceLock;
 ///     use maybe_once::blocking::{Data, MaybeOnce};
-/// 
-/// 
+///
+///
 /// /// A data initializer function. This can be called more than once.
 /// /// If everything goes as expected, it should only be called once.
 /// fn init() -> String {
@@ -31,14 +31,14 @@ use std::sync::Arc;
 ///     // references to the data, the data will be dropped and the container will be stopped.
 ///     "hello".to_string()    
 /// }
-/// 
+///
 /// /// A function that returns a `Data` object.
 /// pub fn data(serial: bool) -> Data<'static, String> {
 ///     static DATA: OnceLock<MaybeOnce<String>> = OnceLock::new();
 ///     DATA.get_or_init(|| MaybeOnce::new(|| init()))
 ///         .data(serial)
 /// }
-/// 
+///
 ///     /// This test, and all the others, uses the data function to access the shared data.
 ///     /// The same data instance is shared between all the threads exactly like OnceLock does,
 ///     /// but when the all tests finish, the data will be dropped before the process terminates.
@@ -47,20 +47,20 @@ use std::sync::Arc;
 ///         let data = data(false);
 ///         println!("{}", *data);
 ///     }
-/// 
+///
 ///     #[test]
 ///     fn test2() {
 ///         let data = data(false);
 ///         println!("{}", *data);
 ///     }
-/// 
+///
 ///     #[test]
 ///     fn test3() {
 ///         let data = data(false);
 ///         println!("{}", *data);
 ///     }
-/// 
-/// } 
+///
+/// }
 /// ```
 pub struct MaybeOnce<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
@@ -70,7 +70,6 @@ pub struct MaybeOnce<T> {
 }
 
 impl<T> MaybeOnce<T> {
-    
     /// Creates a new `MaybeOnce` object with the given `init` function.
     ///
     /// `init` is a function that creates a new `T` object. It is lazily called the first time

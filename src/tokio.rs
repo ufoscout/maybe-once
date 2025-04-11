@@ -8,26 +8,26 @@ use std::future::Future;
 use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// A `MaybeOnce` object is a variation of the `OnceLock` object that keeps track of the number of references to the internal data
-/// and drops it every time the references counter goes to 0. When the data is accessed, 
+/// and drops it every time the references counter goes to 0. When the data is accessed,
 /// it will be created if it does not exist, or it will recreated if it was previously dropped.
-/// 
-/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
+///
+/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when
 /// the process terminates. This mechanism is used as a workaround for the fact that rust does not drop static items at the end of the program.
-/// 
+///
 /// A typical example is to initialize an expensive object, for example to start a docker container, to be used by a set of integration tests,
 /// with the guarantee that it is properly dropped when the tests terminates.
-/// 
-/// Please note that, if this object is used in a single thread context, then it will drop the data after each access. 
+///
+/// Please note that, if this object is used in a single thread context, then it will drop the data after each access.
 /// This is caused by the fact that the internal reference counter will always be 0 once the data is dropped.
-/// 
-/// Example: 
+///
+/// Example:
 /// ```rust
 /// mod test {
-/// 
+///
 ///     use std::sync::OnceLock;
 ///     use maybe_once::tokio::{Data, MaybeOnceAsync};
-/// 
-/// 
+///
+///
 /// /// A data initializer function. This can be called more than once.
 /// /// If everything goes as expected, it should only be called once.
 /// async fn init() -> String {
@@ -36,7 +36,7 @@ use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 ///     // references to the data, the data will be dropped and the container will be stopped.
 ///     "hello".to_string()    
 /// }
-/// 
+///
 /// /// A function that returns a `Data` object.
 /// pub async fn data(serial: bool) -> Data<'static, String> {
 ///     static DATA: OnceLock<MaybeOnceAsync<String>> = OnceLock::new();
@@ -44,7 +44,7 @@ use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 ///         .data(serial)
 ///         .await
 /// }
-/// 
+///
 ///     /// This test, and all the others, uses the data function to access the shared data.
 ///     /// The same data instance is shared between all the threads exactly like OnceLock does,
 ///     /// but when the all tests finish, the data will be dropped before the process terminates.
@@ -53,20 +53,20 @@ use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 ///         let data = data(false).await;
 ///         println!("{}", *data);
 ///     }
-/// 
+///
 ///     #[tokio::test]
 ///     async fn test2() {
 ///         let data = data(false).await;
 ///         println!("{}", *data);
 ///     }
-/// 
+///
 ///     #[tokio::test]
 ///     async fn test3() {
 ///         let data = data(false).await;
 ///         println!("{}", *data);
 ///     }
-/// 
-/// } 
+///
+/// }
 /// ```
 pub struct MaybeOnceAsync<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
@@ -76,7 +76,6 @@ pub struct MaybeOnceAsync<T> {
 }
 
 impl<T> MaybeOnceAsync<T> {
-
     /// Creates a new `MaybeOnceAsync` object with the given `init` function.
     ///
     /// `init` is a function that creates a new `T` object. It is lazily called the first time
