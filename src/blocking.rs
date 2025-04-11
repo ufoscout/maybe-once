@@ -3,10 +3,13 @@ use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::ops::Deref;
 use std::sync::Arc;
 
-/// A `MaybeOnce` object is a variation of the `OnceLock` object that drops the internal data
-/// when there are no more references to it.
-/// When the data is accessed, it will be created if it does not exist, or it will recreated if it was previously dropped.
+/// A `MaybeOnce` object is a variation of the `OnceLock` object that keeps track of the number of references to the internal data
+/// and drops it every time the references counter goes to 0. When the data is accessed, 
+/// it will be created if it does not exist, or it will recreated if it was previously dropped.
 /// 
+/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
+/// the process terminates. This mechanism is used as a workaround for the fact that rust does not drop static items at the end of the program.
+///
 /// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
 /// the process terminates.
 /// A typical example is to initialize an expensive object, for example to start a docker container, to be used by a set of integration tests,
@@ -14,7 +17,6 @@ use std::sync::Arc;
 /// 
 /// Example: 
 /// ```rust
-/// #[cfg(test)]
 /// mod test {
 /// 
 ///     use std::sync::OnceLock;
@@ -140,6 +142,7 @@ impl<T> MaybeOnce<T> {
     }
 }
 
+/// A struct that allows you to access the shared data.
 pub struct Data<'a, T> {
     data_arc: Arc<T>,
     data: Arc<RwLock<Option<Arc<T>>>>,
