@@ -1,31 +1,106 @@
+use log::info;
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::ops::Deref;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
 
-pub struct MaybeSingle<T> {
+/// A `MaybeOnce` object is a variation of the `OnceLock` object that drops the internal data
+/// when there are no more references to it.
+/// When the data is accessed, it will be created if it does not exist, or it will recreated if it was previously dropped.
+/// 
+/// This object is to be used to inizialize a shared resource that must be dropped when it is no longer used or when 
+/// the process terminates.
+/// A typical example is to initialize an expensive object, for example to start a docker container, to be used by a set of integration tests,
+/// with the guarantee that it is properly dropped when the tests terminates.
+/// 
+/// Example: 
+/// ```rust
+/// #[cfg(test)]
+/// mod test {
+/// 
+///     use std::sync::OnceLock;
+///     use maybe_once::blocking::{Data, MaybeOnce};
+/// 
+/// 
+/// /// A data initializer function. This can be called more than once.
+/// /// If everything goes as expected, it should only be called once.
+/// fn init() -> String {
+///     // Expensive initialization logic here.
+///     // For example, you can start here a docker container (e.g. by using testcontainers), when there will be no more
+///     // references to the data, the data will be dropped and the container will be stopped.
+///     "hello".to_string()    
+/// }
+/// 
+/// /// A function that returns a `Data` object.
+/// pub fn data(serial: bool) -> Data<'static, String> {
+///     static DATA: OnceLock<MaybeOnce<String>> = OnceLock::new();
+///     DATA.get_or_init(|| MaybeOnce::new(|| init()))
+///         .data(serial)
+/// }
+/// 
+///     /// This test, and all the others, uses the data function to access the shared data.
+///     /// The same data instance is shared between all the threads exactly like OnceLock does,
+///     /// but when the all tests finish, the data will be dropped before the process terminates.
+///     #[test]
+///     fn test1() {
+///         let data = data(false);
+///         println!("{}", *data);
+///     }
+/// 
+///     #[test]
+///     fn test2() {
+///         let data = data(false);
+///         println!("{}", *data);
+///     }
+/// 
+///     #[test]
+///     fn test3() {
+///         let data = data(false);
+///         println!("{}", *data);
+///     }
+/// 
+/// } 
+/// ```
+pub struct MaybeOnce<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<RwLock<()>>,
     init: fn() -> T,
-    callers: Arc<Mutex<AtomicUsize>>,
+    callers: Arc<Mutex<usize>>,
 }
 
-impl<T> MaybeSingle<T> {
+impl<T> MaybeOnce<T> {
+    
+    /// Creates a new `MaybeOnce` object with the given `init` function.
+    ///
+    /// `init` is a function that creates a new `T` object. It is lazily called the first time
+    /// `data` is called and every time after the data is dropped.
+    ///
+    /// The returned `MaybeOnce` object is then used to access the shared data with the
+    /// `data` method.
     pub fn new(init: fn() -> T) -> Self {
-        MaybeSingle {
+        MaybeOnce {
             data: Arc::new(RwLock::new(None)),
             init,
             lock_mutex: Arc::new(RwLock::new(())),
-            callers: Arc::new(Mutex::new(AtomicUsize::new(0))),
+            callers: Arc::new(Mutex::new(0)),
         }
     }
 
+    /// This function returns a `Data` object, which allows you to access the shared data.
+    ///
+    /// The `serial` parameter allows you to control whether the data is accessed in a serial
+    /// or parallel manner. If `serial` is `true`, the data will be accessed in a serial manner,
+    /// meaning that no other thread can access the data until the returned `Data` is dropped.
+    /// If `serial` is `false`, the data will be accessed in a parallel manner, meaning that
+    /// any number of threads can access the data at the same time.
+    ///
+    /// The returned `Data` object implements `Deref` and `AsRef`, so you can use it like a reference.
+    ///
+    /// The `Data` object also implements `Drop`, so when it goes out of scope, the lock is released.
     pub fn data(&self, serial: bool) -> Data<'_, T> {
         {
-            let lock = self.callers.lock();
-            let callers = lock.load(SeqCst) + 1;
-            lock.store(callers, SeqCst);
+            let mut lock = self.callers.lock();
+            let callers = *lock + 1;
+            *lock = callers;
         }
         let data_arc = {
             let mut lock = self.data.read();
@@ -35,7 +110,6 @@ impl<T> MaybeSingle<T> {
                 {
                     let mut write_lock = self.data.write();
                     if write_lock.is_none() {
-                        //  println!("--- INIT ---");
                         *write_lock = Some(Arc::new((self.init)()));
                     }
                 }
@@ -44,7 +118,6 @@ impl<T> MaybeSingle<T> {
                 lock
             };
 
-            //println!("---- Exec {}", rnd);
             match lock.as_ref() {
                 Some(data) => data.clone(),
                 None => panic!("There should always be data here!"),
@@ -74,18 +147,18 @@ pub struct Data<'a, T> {
     read_lock: Option<RwLockReadGuard<'a, ()>>,
     #[allow(dead_code)]
     write_lock: Option<RwLockWriteGuard<'a, ()>>,
-    callers: Arc<Mutex<AtomicUsize>>,
+    callers: Arc<Mutex<usize>>,
 }
 
 impl<T> Drop for Data<'_, T> {
     fn drop(&mut self) {
-        //println!("--- Dropping DATA ---");
-        let lock = self.callers.lock();
-        let callers = lock.load(SeqCst) - 1;
-        lock.store(callers, SeqCst);
+        let mut lock = self.callers.lock();
+        // Here the lock cannot be less than 1
+        let callers = *lock - 1;
+        *lock = callers;
 
         if callers == 0 {
-            println!("MaybeSingle --- Dropping DATA ---");
+            info!("MaybeSingle --- Dropping DATA ---");
             let mut data = self.data.write();
             *data = None;
         }
@@ -116,7 +189,7 @@ mod test {
 
     #[test]
     fn should_execute_in_parallel() {
-        let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
+        let maybe: MaybeOnce<()> = MaybeOnce::new(|| {});
         let maybe = Arc::new(maybe);
         let mut handles = vec![];
 
@@ -140,7 +213,7 @@ mod test {
 
     #[test]
     fn should_execute_serially() {
-        let maybe: MaybeSingle<()> = MaybeSingle::new(|| {});
+        let maybe: MaybeOnce<()> = MaybeOnce::new(|| {});
         let maybe = Arc::new(maybe);
         let mut handles = vec![];
 

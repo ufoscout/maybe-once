@@ -1,35 +1,34 @@
 use std::ops::Deref;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering::SeqCst;
 use std::sync::Arc;
 
 use core::pin::Pin;
+use log::info;
 use parking_lot::{Mutex, RwLock};
 use std::future::Future;
 use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 
-pub struct MaybeSingleAsync<T> {
+pub struct MaybeOnceAsync<T> {
     data: Arc<RwLock<Option<Arc<T>>>>,
     lock_mutex: Arc<AsyncRwLock<()>>,
     init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>,
-    callers: Arc<Mutex<AtomicUsize>>,
+    callers: Arc<Mutex<usize>>,
 }
 
-impl<T> MaybeSingleAsync<T> {
+impl<T> MaybeOnceAsync<T> {
     pub fn new(init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>) -> Self {
-        MaybeSingleAsync {
+        MaybeOnceAsync {
             data: Arc::new(RwLock::new(None)),
             init,
             lock_mutex: Arc::new(AsyncRwLock::new(())),
-            callers: Arc::new(Mutex::new(AtomicUsize::new(0))),
+            callers: Arc::new(Mutex::new(0)),
         }
     }
 
     pub async fn data(&self, serial: bool) -> Data<'_, T> {
         {
-            let lock = self.callers.lock();
-            let callers = lock.load(SeqCst) + 1;
-            lock.store(callers, SeqCst);
+            let mut lock = self.callers.lock();
+            let callers = *lock + 1;
+            *lock = callers;
         }
 
         let data_arc = {
@@ -44,14 +43,13 @@ impl<T> MaybeSingleAsync<T> {
                     let init = { (self.init)().await };
                     let mut write_lock = self.data.write();
                     if write_lock.is_none() {
-                        //  println!("--- INIT ---");
                         *write_lock = Some(Arc::new(init));
                     }
                 }
             };
 
             let lock = self.data.read();
-            //println!("---- Exec {}", rnd);
+
             match lock.as_ref() {
                 Some(data) => data.clone(),
                 None => panic!("There should always be data here!"),
@@ -81,18 +79,18 @@ pub struct Data<'a, T> {
     read_lock: Option<RwLockReadGuard<'a, ()>>,
     #[allow(dead_code)]
     write_lock: Option<RwLockWriteGuard<'a, ()>>,
-    callers: Arc<Mutex<AtomicUsize>>,
+    callers: Arc<Mutex<usize>>,
 }
 
 impl<T> Drop for Data<'_, T> {
     fn drop(&mut self) {
-        //println!("--- Dropping DATA ---");
-        let lock = self.callers.lock();
-        let callers = lock.load(SeqCst) - 1;
-        lock.store(callers, SeqCst);
+        let mut lock = self.callers.lock();
+        // Here the lock cannot be less than 1
+        let callers = *lock - 1;
+        *lock = callers;
 
         if callers == 0 {
-            println!("MaybeSingle --- Dropping DATA ---");
+            info!("MaybeSingle --- Dropping DATA ---");
             let mut data = self.data.write();
             *data = None;
         }
@@ -123,7 +121,7 @@ mod test {
 
     #[test]
     fn maybe_should_be_send() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
+        let maybe = MaybeOnceAsync::new(|| Box::pin(async {}));
         need_send(maybe);
     }
 
@@ -132,13 +130,13 @@ mod test {
 
     #[test]
     fn maybe_should_be_sync() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
+        let maybe = MaybeOnceAsync::new(|| Box::pin(async {}));
         need_sync(maybe);
     }
 
     #[tokio::test]
     async fn async_should_execute_in_parallel() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
+        let maybe = MaybeOnceAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
         let responses = Arc::new(AsyncMutex::new(vec![]));
@@ -172,7 +170,7 @@ mod test {
 
     #[tokio::test]
     async fn async_should_execute_serially() {
-        let maybe = MaybeSingleAsync::new(|| Box::pin(async {}));
+        let maybe = MaybeOnceAsync::new(|| Box::pin(async {}));
         let maybe = Arc::new(maybe);
 
         let responses = Arc::new(AsyncMutex::new(vec![]));
