@@ -1,5 +1,5 @@
 [package]
-name = "maybe-single"
+name = "maybe-once"
 version = "0.16.1"
 license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
