@@ -170,7 +170,7 @@ impl<T> Drop for Data<'_, T> {
         *lock = callers;
 
         if callers == 0 {
-            info!("MaybeSingle --- Dropping DATA ---");
+            info!("MaybeOnceAsync --- Dropping DATA ---");
             let mut data = self.data.write();
             *data = None;
         }
