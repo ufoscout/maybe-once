@@ -5,6 +5,9 @@ license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
 edition = "2021"
 description = "A singleton. Maybe."
+readme = "README.md"
+homepage = "https://github.com/ufoscout/maybe-once"
+repository = "https://github.com/ufoscout/maybe-once"
 
 [dependencies]
 log = "0.4"
