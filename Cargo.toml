@@ -1,6 +1,6 @@
 [package]
 name = "maybe-once"
-version = "0.17.3"
+version = "0.17.4"
 license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
 edition = "2021"
@@ -8,6 +8,7 @@ description = "A singleton. Maybe."
 readme = "README.md"
 homepage = "https://github.com/ufoscout/maybe-once"
 repository = "https://github.com/ufoscout/maybe-once"
+keywords = ["once", "maybe", "oncelock", "singleton"]
 
 [workspace]
 members = [
