@@ -1,7 +1,6 @@
-
 #[cfg(test)]
 mod tests {
-    
+
     use std::sync::OnceLock;
 
     use maybe_once::blocking::{Data, MaybeOnce};
@@ -15,22 +14,24 @@ mod tests {
     /// It will be stopped when the tests terminate.
     fn init() -> MaybeOnceType {
         // startup the container
-        let node = Postgres::default().start().expect("Could not start container");
+        let node = Postgres::default()
+            .start()
+            .expect("Could not start container");
 
         // prepare connection string
         let connection_string = format!(
             "postgres://postgres:postgres@127.0.0.1:{}/postgres",
-            node.get_host_port_ipv4(5432).expect("Could not get db port")
+            node.get_host_port_ipv4(5432)
+                .expect("Could not get db port")
         );
 
         (connection_string, node)
     }
-    
+
     /// A function that holds a static reference to the container
     pub fn data(serial: bool) -> Data<'static, MaybeOnceType> {
         static DATA: OnceLock<MaybeOnce<MaybeOnceType>> = OnceLock::new();
-        DATA.get_or_init(|| MaybeOnce::new(init))
-            .data(serial)
+        DATA.get_or_init(|| MaybeOnce::new(init)).data(serial)
     }
 
     // --------------------------------------------
@@ -48,7 +49,6 @@ mod tests {
         assert_eq!(rows.len(), 1);
     }
 
-
     #[test]
     fn test_2() {
         let data = data(false);
@@ -59,7 +59,6 @@ mod tests {
         let rows = conn.query("SELECT 1 + 1", &[]).unwrap();
         assert_eq!(rows.len(), 1);
     }
-
 
     #[test]
     fn test_3() {

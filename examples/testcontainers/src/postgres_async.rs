@@ -1,7 +1,6 @@
-
 #[cfg(test)]
 mod tests {
-    
+
     use std::sync::OnceLock;
 
     use deadpool::{managed::Pool, Runtime};
@@ -18,7 +17,10 @@ mod tests {
     /// It will be stopped when the tests terminate.
     async fn init() -> MaybeOnceType {
         // startup the container
-        let node = Postgres::default().start().await.expect("Could not start container");
+        let node = Postgres::default()
+            .start()
+            .await
+            .expect("Could not start container");
 
         let config = deadpool_postgres::Config {
             user: Some("postgres".to_owned()),
@@ -28,12 +30,14 @@ mod tests {
             port: Some(node.get_host_port_ipv4(5432).await.unwrap()),
             ..Default::default()
         };
-   
-        let pool = config.create_pool(Some(Runtime::Tokio1), NoTls).expect("Could not create connection pool");
+
+        let pool = config
+            .create_pool(Some(Runtime::Tokio1), NoTls)
+            .expect("Could not create connection pool");
 
         (pool, node)
     }
-    
+
     /// A function that holds a static reference to the container
     pub async fn data(serial: bool) -> Data<'static, MaybeOnceType> {
         static DATA: OnceLock<MaybeOnceAsync<MaybeOnceType>> = OnceLock::new();
@@ -75,5 +79,4 @@ mod tests {
         let rows = conn.query("SELECT 1 + 1", &[]).await.unwrap();
         assert_eq!(rows.len(), 1);
     }
-
 }

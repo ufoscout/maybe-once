@@ -28,12 +28,12 @@ use std::sync::Arc;
 /// fn init() -> String {
 ///     // Expensive initialization logic here.
 ///     // For example, you can start here a docker container (e.g. by using testcontainers),
-///     // when there will be no more references to the data, 
+///     // when there will be no more references to the data,
 ///     // the data will be dropped and the container will be stopped.
 ///     "hello".to_string()    
 /// }
 ///
-/// /// A function that holds a static reference to the `MaybeOnce` object 
+/// /// A function that holds a static reference to the `MaybeOnce` object
 /// /// and returns a `Data` object.
 /// pub fn data(serial: bool) -> Data<'static, String> {
 ///     static DATA: OnceLock<MaybeOnce<String>> = OnceLock::new();
