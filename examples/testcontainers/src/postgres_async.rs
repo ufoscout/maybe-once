@@ -27,7 +27,11 @@ mod tests {
             password: Some("postgres".to_owned()),
             dbname: Some("postgres".to_owned()),
             host: Some("127.0.0.1".to_string()),
-            port: Some(node.get_host_port_ipv4(5432).await.unwrap()),
+            port: Some(
+                node.get_host_port_ipv4(5432)
+                    .await
+                    .expect("Could not get db port"),
+            ),
             ..Default::default()
         };
 
