@@ -20,31 +20,42 @@ mod test {
     use std::sync::OnceLock;
     use maybe_once::blocking::{Data, MaybeOnce};
     
-    /// A data initializer function. This can be called more than once.
-    /// If everything goes as expected, it should only be called once.
+    /// A data initializer function. This can be called more than 
+    /// once.
+    /// If everything goes as expected, it should only be called
+    /// once.
     fn init() -> String {
         // Expensive initialization logic here.
-        // For example, you can start here a docker container (e.g. by using testcontainers), when there will be no more
-        // references to the data, the data will be dropped and the container will be stopped.
+        // For example, you can start here a docker container 
+        // (e.g. by using testcontainers),
+        // when there will be no more references to the data, 
+        // the data will be dropped and the container will be 
+        // stopped.
         "hello".to_string()    
     }
     
-    /// A data initializer function. This can be called more than once.
-    /// If everything goes as expected, it should only be called once.
-    fn init2() -> String {
-        // Expensive initialization logic here.
-        // For example, you can start here a docker container (e.g. by using testcontainers), when there will be no more
-        // references to the data, the data will be dropped and the container will be stopped.
-        "hello".to_string()    
+    /// A function that holds a static reference to the `MaybeOnce` 
+    /// object and returns a `Data` object.
+    pub fn data(serial: bool) -> Data<'static, String> {
+        static DATA: OnceLock<MaybeOnce<String>> = OnceLock::new();
+        DATA.get_or_init(|| MaybeOnce::new(|| init()))
+            .data(serial)
     }
     
-    /// Here we have multiple tests that access the data. As the tests are executed in parallel in multiple threads,
-    /// the internal counter of the `MaybeOnce` object will be incremented to 3. It will then decrement every time a test finishes,
+    /// Here we have multiple tests that access the data. 
+    /// As the tests are executed in parallel in multiple threads,
+    /// the internal counter of the `MaybeOnce` object will be 
+    /// incremented to 3. 
+    /// It will then decrement every time a test finishes,
     /// and incrementes each time a new test starts.
-    /// Once the internal counter goes to 0, the data will be dropped. At this points all tests are statistically complete, but if for some
-    /// reason the data is accessed again, the data will be recreated using the `init` function.
+    /// Once the internal counter goes to 0, the data will be dropped. 
+    /// At this points all tests are (statistically) complete, but if 
+    /// for some reason the data is accessed again, the data will be 
+    /// recreated using the `init` function.
     /// 
-    /// WARNING: If you execute the tests with a single thread, the data will be dropped after each test and recreated each time.
+    /// WARNING: If you execute the tests with a single thread, 
+    /// the data will be dropped after each test and recreated 
+    /// each time.
     #[test]
     fn test1() {
         let data = data(false);
@@ -83,6 +94,15 @@ mod test {
         "hello".to_string()    
     }
     
+    /// A function that holds a static reference to the `MaybeOnceAsync`
+    /// object and returns a `Data` object.
+    pub async fn data(serial: bool) -> Data<'static, String> {
+        static DATA: OnceLock<MaybeOnceAsync<String>> = OnceLock::new();
+        DATA.get_or_init(|| MaybeOnceAsync::new(|| Box::pin(init())))
+            .data(serial)
+            .await
+    }
+
     #[tokio::test]
     async fn test1() {
         let data = data(false).await;

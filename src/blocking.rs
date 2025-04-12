@@ -27,12 +27,14 @@ use std::sync::Arc;
 /// /// If everything goes as expected, it should only be called once.
 /// fn init() -> String {
 ///     // Expensive initialization logic here.
-///     // For example, you can start here a docker container (e.g. by using testcontainers), when there will be no more
-///     // references to the data, the data will be dropped and the container will be stopped.
+///     // For example, you can start here a docker container (e.g. by using testcontainers),
+///     // when there will be no more references to the data, 
+///     // the data will be dropped and the container will be stopped.
 ///     "hello".to_string()    
 /// }
 ///
-/// /// A function that returns a `Data` object.
+/// /// A function that holds a static reference to the `MaybeOnce` object 
+/// /// and returns a `Data` object.
 /// pub fn data(serial: bool) -> Data<'static, String> {
 ///     static DATA: OnceLock<MaybeOnce<String>> = OnceLock::new();
 ///     DATA.get_or_init(|| MaybeOnce::new(|| init()))
