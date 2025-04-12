@@ -11,7 +11,9 @@ and drops it every time the references counter goes to 0.
 
 # Why is this useful?
 
-In Rust static variables are not dropped when the program terminates. This is a problem when you need to initialize a shared resource that must be dropped when it is no longer used or when the process terminates. This happens, for example, when you a have a common resource to be usued by a set of integration tests, and you want it to be dropped when the tests terminates.
+In Rust static variables are not dropped when the program terminates. This is a problem when you need to initialize a shared resource that must be dropped when it is no longer used or when the process terminates. This happens, for example, when you a have a common resource to be used by a set of integration tests, and you want it to be dropped when the tests terminates.
+
+Check the examples to see how to use it with docker and [testcontainers](https://github.com/testcontainers/testcontainers-rs).
 
 # Usage examples    
 
