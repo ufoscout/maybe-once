@@ -48,10 +48,11 @@ mod test {
     /// incremented to 3. 
     /// It will then decrement every time a test finishes,
     /// and incrementes each time a new test starts.
-    /// Once the internal counter goes to 0, the data will be dropped. 
-    /// At this points all tests are (statistically) complete, but if 
-    /// for some reason the data is accessed again, the data will be 
-    /// recreated using the `init` function.
+    /// Once the internal counter goes to 0, the data will be 
+    /// dropped. 
+    /// At this points all tests are (statistically) complete, 
+    /// but if for some reason the data is accessed again, it will
+    /// be recreated using the `init` function.
     /// 
     /// WARNING: If you execute the tests with a single thread, 
     /// the data will be dropped after each test and recreated 
@@ -94,11 +95,15 @@ mod test {
         "hello".to_string()    
     }
     
-    /// A function that holds a static reference to the `MaybeOnceAsync`
-    /// object and returns a `Data` object.
+    /// A function that holds a static reference to the 
+    /// `MaybeOnceAsync` object and returns a `Data` 
+    /// object.
     pub async fn data(serial: bool) -> Data<'static, String> {
-        static DATA: OnceLock<MaybeOnceAsync<String>> = OnceLock::new();
-        DATA.get_or_init(|| MaybeOnceAsync::new(|| Box::pin(init())))
+        static DATA: OnceLock<MaybeOnceAsync<String>> = 
+            OnceLock::new();
+        DATA.get_or_init(|| 
+                MaybeOnceAsync::new(|| Box::pin(init()))
+            )
             .data(serial)
             .await
     }
