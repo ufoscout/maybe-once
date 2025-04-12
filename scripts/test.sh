@@ -2,5 +2,5 @@
 set -e
 export RUST_BACKTRACE=full
 
-cargo test 
-cargo test --all-features
+cargo test --workspace
+cargo test --workspace --all-features

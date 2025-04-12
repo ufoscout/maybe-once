@@ -9,6 +9,11 @@ readme = "README.md"
 homepage = "https://github.com/ufoscout/maybe-once"
 repository = "https://github.com/ufoscout/maybe-once"
 
+[workspace]
+members = [
+    "examples/*",
+]
+
 [package.metadata.docs.rs]
 # Generate docs for all features
 all-features = true

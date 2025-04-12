@@ -1,0 +1,14 @@
+[package]
+name = "testcontainers_example"
+version = "0.0.1"
+license = "MIT"
+authors = ["ufoscout <ufoscout@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+maybe-once = { path = "../../", features = ["tokio"]}
+postgres = { version = "0.19" }
+testcontainers = { version = "0.23", features = ["blocking"] }
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
+tokio = { version = "1", default-features = false, features = ["sync"], optional = true }
+tokio-postgres = "0.7"
