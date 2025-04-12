@@ -65,8 +65,17 @@ mod tests {
         let connection_string = &data.0;
 
         // container is up, you can use it
-        let mut conn = postgres::Client::connect(connection_string, postgres::NoTls).unwrap();
-        let rows = conn.query("SELECT 1 + 1", &[]).unwrap();
+        let (conn, connection) = tokio_postgres::connect(connection_string, tokio_postgres::NoTls).await.unwrap();
+
+            // The connection object performs the actual communication with the database,
+    // so spawn it off to run on its own.
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
+        let rows = conn.query("SELECT 1 + 1", &[]).await.unwrap();
         assert_eq!(rows.len(), 1);
     }
 
@@ -77,8 +86,17 @@ mod tests {
         let connection_string = &data.0;
 
         // container is up, you can use it
-        let mut conn = postgres::Client::connect(connection_string, postgres::NoTls).unwrap();
-        let rows = conn.query("SELECT 1 + 1", &[]).unwrap();
+        let (conn, connection) = tokio_postgres::connect(connection_string, tokio_postgres::NoTls).await.unwrap();
+
+            // The connection object performs the actual communication with the database,
+    // so spawn it off to run on its own.
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
+        let rows = conn.query("SELECT 1 + 1", &[]).await.unwrap();
         assert_eq!(rows.len(), 1);
     }
 }
