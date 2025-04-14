@@ -8,20 +8,26 @@ description = "A singleton. Maybe."
 readme = "README.md"
 homepage = "https://github.com/ufoscout/maybe-once"
 repository = "https://github.com/ufoscout/maybe-once"
+include = ["examples/**/*", "src/**/*", "README.md", "LICENSE"]
+documentation = "https://docs.rs/maybe-once/"
+rust-version = "1.78.0"
+categories = ["asynchronous", "concurrency"]
+keywords = ["singleton", "lazy", "once", "thread-safe", "async", "tokio"]
 
 [workspace]
-members = [
-    "examples/*",
-]
+members = ["examples/*"]
 
 [package.metadata.docs.rs]
 # Generate docs for all features
 all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 log = "0.4"
 parking_lot = "0.12"
-tokio = { version = "1", default-features = false, features = ["sync"], optional = true}
+tokio = { version = "1", default-features = false, features = [
+    "sync",
+], optional = true }
 
 [dev-dependencies]
 rand = "0.9"

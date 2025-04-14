@@ -7,7 +7,7 @@ use parking_lot::{Mutex, RwLock};
 use std::future::Future;
 use tokio::sync::{RwLock as AsyncRwLock, RwLockReadGuard, RwLockWriteGuard};
 
-/// A `MaybeOnce` object is a variation of the `OnceLock` object that keeps track of the number of references to the internal data
+/// A [`MaybeOnceAsync`] object is a variation of the [`std::sync::OnceLock`] object that keeps track of the number of references to the internal data
 /// and drops it every time the references counter goes to 0. When the data is accessed,
 /// it will be created if it does not exist, or it will recreated if it was previously dropped.
 ///
@@ -78,12 +78,12 @@ pub struct MaybeOnceAsync<T> {
 }
 
 impl<T> MaybeOnceAsync<T> {
-    /// Creates a new `MaybeOnceAsync` object with the given `init` function.
+    /// Creates a new [`MaybeOnceAsync`] object with the given `init` function.
     ///
     /// `init` is a function that creates a new `T` object. It is lazily called the first time
     /// `data` is called and every time after the data is dropped.
     ///
-    /// The returned `MaybeOnceAsync` object is then used to access the shared data with the
+    /// The returned [`MaybeOnceAsync`] object is then used to access the shared data with the
     /// `data` method.
     pub fn new(init: fn() -> Pin<Box<dyn Send + Future<Output = T>>>) -> Self {
         MaybeOnceAsync {
@@ -94,17 +94,17 @@ impl<T> MaybeOnceAsync<T> {
         }
     }
 
-    /// This function returns a `Data` object, which allows you to access the shared data.
+    /// This function returns a [`Data`] object, which allows you to access the shared data.
     ///
     /// The `serial` parameter allows you to control whether the data is accessed in a serial
     /// or parallel manner. If `serial` is `true`, the data will be accessed in a serial manner,
-    /// meaning that no other thread can access the data until the returned `Data` is dropped.
+    /// meaning that no other thread can access the data until the returned [`Data`] is dropped.
     /// If `serial` is `false`, the data will be accessed in a parallel manner, meaning that
     /// any number of threads can access the data at the same time.
     ///
-    /// The returned `Data` object implements `Deref` and `AsRef`, so you can use it like a reference.
+    /// The returned [`Data`] object implements [`Deref`] and [`AsRef`], so you can use it like a reference.
     ///
-    /// The `Data` object also implements `Drop`, so when it goes out of scope, the lock is released.
+    /// The [`Data`] object also implements [`Drop`], so when it goes out of scope, the lock is released.
     pub async fn data(&self, serial: bool) -> Data<'_, T> {
         {
             let mut lock = self.callers.lock();
