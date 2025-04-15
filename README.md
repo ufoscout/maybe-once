@@ -1,21 +1,22 @@
 # maybe-once
 
-![crates.io](https://img.shields.io/crates/v/maybe-once.svg)
+[![crates.io](https://img.shields.io/crates/v/maybe-once.svg)](https://crates.io/crates/maybe-once)
+[![docs.rs](https://docs.rs/maybe-once/badge.svg)](https://docs.rs/maybe-once)
 ![Build Status](https://github.com/ufoscout/maybe-once/actions/workflows/build_and_test.yml/badge.svg)
 [![codecov](https://codecov.io/gh/ufoscout/maybe-once/branch/master/graph/badge.svg)](https://codecov.io/gh/ufoscout/maybe-once)
 
-# What is this?
+## What is this?
 
 `maybe-once` offers a variation of `OnceLock` that keeps track of the number of references to the internal data
 and drops it every time the references counter goes to 0.
 
-# Why is this useful?
+## Why is this useful?
 
 In Rust static variables are not dropped when the program terminates. This is a problem when you need to initialize a shared resource that must be dropped when it is no longer used or when the process terminates. This happens, for example, when you a have a common resource to be used by a set of integration tests, and you want it to be dropped when the tests terminates.
 
 Check the examples to see how to use it with docker and [testcontainers](https://github.com/testcontainers/testcontainers-rs).
 
-# Usage examples    
+## Usage examples
 
 ```rust
 mod test {
@@ -80,7 +81,7 @@ mod test {
 }
 ```
 
-# Usage with tokio
+## Usage with tokio
 
 The `tokio` feature of this crate allows you to use the optional `MaybeOnceAsync` object to initialize a shared resource using an async function.
 
