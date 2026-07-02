@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, sync::OnceLock};
 use std::sync::Arc;
 
 use core::pin::Pin;
@@ -192,6 +192,22 @@ impl<T> AsRef<T> for Data<'_, T> {
         self.data_arc.as_ref()
     }
 }
+
+
+pub fn run_test<F: std::future::Future>(f: F) -> F::Output {
+    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    RT.get_or_init(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Should create a tokio runtime")
+    })
+    .block_on(f)
+}
+
+
+
+
 
 #[cfg(test)]
 mod test {

@@ -1,0 +1,22 @@
+[package]
+name = "maybe-once-macros"
+version = "0.17.3"
+license = "MIT"
+authors = ["ufoscout <ufoscout@gmail.com>"]
+edition = "2021"
+description = "Procedural macros for the `maybe-once` crate."
+readme = "../README.md"
+homepage = "https://github.com/ufoscout/maybe-once"
+repository = "https://github.com/ufoscout/maybe-once"
+documentation = "https://docs.rs/maybe-once/"
+rust-version = "1.78.0"
+categories = ["asynchronous", "concurrency"]
+keywords = ["singleton", "lazy", "once", "async", "tokio"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }

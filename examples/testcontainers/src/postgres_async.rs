@@ -6,6 +6,7 @@ mod tests {
     use deadpool::{managed::Pool, Runtime};
     use deadpool_postgres::Manager;
     use maybe_once::tokio::{Data, MaybeOnceAsync};
+    use maybe_once::tokio_shared;
     use postgres::NoTls;
     use testcontainers::{runners::AsyncRunner, ContainerAsync};
     use testcontainers_modules::postgres::Postgres;
@@ -16,6 +17,9 @@ mod tests {
     /// Starts a Postgres container shared between all tests.
     /// It will be stopped when the tests terminate.
     async fn init() -> MaybeOnceType {
+
+        println!("init");
+
         // startup the container
         let node = Postgres::default()
             .start()
@@ -54,7 +58,7 @@ mod tests {
     // All tests share the same container instance
     // --------------------------------------------
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test_1() {
         let data = data(false).await;
         let pool = &data.0;
@@ -64,7 +68,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
     }
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test_2() {
         let data = data(false).await;
         let pool = &data.0;
@@ -74,7 +78,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
     }
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test_3() {
         let data = data(false).await;
         let pool = &data.0;
