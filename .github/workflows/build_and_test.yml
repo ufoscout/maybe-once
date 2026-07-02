@@ -20,25 +20,27 @@ jobs:
       CARGO_TERM_COLOR: always
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
      
       - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: clippy, rustfmt
 
-      - name: rustfmt
+      - name: Install Just command runner
+        uses: extractions/setup-just@v1
+        
+      - name: check rust code style
         run: |
-          cargo fmt --all --check
+          just check_code
 
-      - name: clippy
+      - name: build
         run: |
-          cargo clippy --all-features --all-targets -- -D warnings
+          just build
 
       - name: test
         run: |
-          ./scripts/test.sh
+          just test
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
