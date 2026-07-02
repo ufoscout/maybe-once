@@ -6,14 +6,14 @@ members = ["maybe-once", "maybe-once-macros", "examples/*"]
 version = "0.18.0"
 license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "A singleton. Maybe."
 readme = "README.md"
 homepage = "https://github.com/ufoscout/maybe-once"
 repository = "https://github.com/ufoscout/maybe-once"
 include = ["src/**/*", "README.md", "LICENSE"]
 documentation = "https://docs.rs/maybe-once/"
-rust-version = "1.78.0"
+rust-version = "1.85.0"
 categories = ["asynchronous", "concurrency"]
 keywords = ["singleton", "lazy", "once", "thread-safe", "async", "tokio"]
 

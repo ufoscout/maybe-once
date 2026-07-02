@@ -4,7 +4,7 @@ mod tests {
     use std::sync::OnceLock;
 
     use maybe_once::blocking::{Data, MaybeOnce};
-    use testcontainers::{runners::SyncRunner, Container};
+    use testcontainers::{Container, runners::SyncRunner};
     use testcontainers_modules::postgres::Postgres;
 
     type MaybeOnceType = (String, Container<Postgres>);

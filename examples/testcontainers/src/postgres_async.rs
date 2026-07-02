@@ -3,12 +3,12 @@ mod tests {
 
     use std::sync::OnceLock;
 
-    use deadpool::{managed::Pool, Runtime};
+    use deadpool::{Runtime, managed::Pool};
     use deadpool_postgres::Manager;
     use maybe_once::tokio::{Data, MaybeOnceAsync};
     use maybe_once::tokio_shared;
     use postgres::NoTls;
-    use testcontainers::{runners::AsyncRunner, ContainerAsync};
+    use testcontainers::{ContainerAsync, runners::AsyncRunner};
     use testcontainers_modules::postgres::Postgres;
 
     type MaybeOnceType = (Pool<Manager>, ContainerAsync<Postgres>);
