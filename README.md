@@ -85,12 +85,19 @@ mod test {
 
 The `tokio` feature of this crate allows you to use the optional `MaybeOnceAsync` object to initialize a shared resource using an async function.
 
+### Why `#[tokio_shared::test]` instead of `#[tokio::test]`?
+
+`#[tokio::test]` spins up a **brand-new runtime for every test**. This causes issues that when you have multiple tests that need to access the same resource, the resource is dropped and recreated multiple times.
+
+The `#[tokio_shared::test]` attribute (enabled by the `tokio` feature) fixes this by running all tests on a single, process-wide multi-threaded tokio runtime shared by every annotated test.
+
 ```rust
 #[cfg(feature = "tokio")]
 mod test {
     
     use std::sync::OnceLock;
     use maybe_once::tokio::{Data, MaybeOnceAsync};
+    use maybe_once::tokio_shared;
     
     /// A data async initializer function.
     async fn init() -> String {
@@ -111,19 +118,19 @@ mod test {
             .await
     }
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test1() {
         let data = data(false).await;
         println!("{}", *data);  
     }
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test2() {
         let data = data(false).await;
         println!("{}", *data);  
     }
 
-    #[tokio::test]
+    #[tokio_shared::test]
     async fn test3() {
         let data = data(false).await;
         println!("{}", *data);  
