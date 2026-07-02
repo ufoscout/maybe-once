@@ -15,7 +15,7 @@ include = ["src/**/*", "README.md", "LICENSE"]
 documentation = "https://docs.rs/maybe-once/"
 rust-version = "1.85.0"
 categories = ["asynchronous", "concurrency"]
-keywords = ["singleton", "lazy", "once", "thread-safe", "async", "tokio"]
+keywords = ["singleton", "lazy", "once", "async", "tokio"]
 
 [workspace.dependencies]
 maybe-once = { version = "0.18.0", path = "./maybe-once" }
