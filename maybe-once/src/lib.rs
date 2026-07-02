@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str!("../../README.md")]
 #![allow(clippy::test_attr_in_doctest)]
 
 pub mod blocking;
@@ -17,4 +17,3 @@ pub mod tokio_shared {
     /// See the [module-level documentation](self) for details.
     pub use maybe_once_macros::test;
 }
-

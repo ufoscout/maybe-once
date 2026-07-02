@@ -1,4 +1,4 @@
-# maybe-once
+ maybe-once
 
 [![crates.io](https://img.shields.io/crates/v/maybe-once.svg)](https://crates.io/crates/maybe-once)
 [![docs.rs](https://docs.rs/maybe-once/badge.svg)](https://docs.rs/maybe-once)

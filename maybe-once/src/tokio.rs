@@ -1,5 +1,5 @@
-use std::{ops::Deref, sync::OnceLock};
 use std::sync::Arc;
+use std::{ops::Deref, sync::OnceLock};
 
 use core::pin::Pin;
 use log::info;
@@ -193,7 +193,6 @@ impl<T> AsRef<T> for Data<'_, T> {
     }
 }
 
-
 pub fn run_test<F: std::future::Future>(f: F) -> F::Output {
     static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
     RT.get_or_init(|| {
@@ -204,10 +203,6 @@ pub fn run_test<F: std::future::Future>(f: F) -> F::Output {
     })
     .block_on(f)
 }
-
-
-
-
 
 #[cfg(test)]
 mod test {

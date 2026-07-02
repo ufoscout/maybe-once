@@ -1,0 +1,31 @@
+[package]
+name = "maybe-once"
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+description.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+# Generate docs for all features
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+log.workspace = true
+parking_lot.workspace = true
+tokio = { workspace = true, optional = true }
+maybe-once-macros = { workspace = true, optional = true }
+
+[dev-dependencies]
+rand.workspace = true
+
+[features]
+default = []
+tokio = ["dep:tokio", "dep:maybe-once-macros"]

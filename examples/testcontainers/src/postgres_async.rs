@@ -17,7 +17,6 @@ mod tests {
     /// Starts a Postgres container shared between all tests.
     /// It will be stopped when the tests terminate.
     async fn init() -> MaybeOnceType {
-
         println!("init");
 
         // startup the container

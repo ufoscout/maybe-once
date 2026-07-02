@@ -1,6 +1,9 @@
-[package]
-name = "maybe-once"
-version = "0.17.3"
+[workspace]
+resolver = "2"
+members = ["maybe-once", "maybe-once-macros", "examples/*"]
+
+[workspace.package]
+version = "0.18.0"
 license = "MIT"
 authors = ["ufoscout <ufoscout@gmail.com>"]
 edition = "2021"
@@ -8,34 +11,24 @@ description = "A singleton. Maybe."
 readme = "README.md"
 homepage = "https://github.com/ufoscout/maybe-once"
 repository = "https://github.com/ufoscout/maybe-once"
-include = ["examples/**/*", "src/**/*", "README.md", "LICENSE"]
+include = ["src/**/*", "README.md", "LICENSE"]
 documentation = "https://docs.rs/maybe-once/"
 rust-version = "1.78.0"
 categories = ["asynchronous", "concurrency"]
 keywords = ["singleton", "lazy", "once", "thread-safe", "async", "tokio"]
 
-[workspace]
-members = ["maybe-once-macros", "examples/*"]
+[workspace.dependencies]
+maybe-once = { version = "0.18.0", path = "./maybe-once" }
+maybe-once-macros = { version = "0.18.0", path = "./maybe-once-macros" }
 
-[package.metadata.docs.rs]
-# Generate docs for all features
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
-
-[dependencies]
 log = "0.4"
 parking_lot = "0.12"
-tokio = { version = "1", default-features = false, features = [
-    "sync",
-    "rt",
-    "rt-multi-thread",
-], optional = true }
-maybe-once-macros = { version = "0.17.3", path = "maybe-once-macros", optional = true }
-
-[dev-dependencies]
+proc-macro2 = "1"
+quote = "1"
 rand = "0.10"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
-
-[features]
-default = []
-tokio = ["dep:tokio", "dep:maybe-once-macros"]
+syn = { version = "2" }
+tokio = { version = "1", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+    "time",
+] }
