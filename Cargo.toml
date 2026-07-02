@@ -28,6 +28,7 @@ quote = "1"
 rand = "0.10"
 syn = { version = "2", features = ["full"] }
 tokio = { version = "1", default-features = false, features = [
+    "sync",
     "macros",
     "rt-multi-thread",
     "time",

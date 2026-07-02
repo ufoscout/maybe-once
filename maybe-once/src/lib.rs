@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../README.md")]
 #![allow(clippy::test_attr_in_doctest)]
 
 pub mod blocking;
